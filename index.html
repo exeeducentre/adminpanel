@@ -1,0 +1,1083 @@
+
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Portal - EXE Education Centre</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Poppins', 'sans-serif'] },
+                    colors: { 
+                        brand: { 
+                            pink: '#d81b60', 
+                            orange: '#f57c00', 
+                            yellow: '#fbc02d', 
+                            dark: '#1f2022', 
+                            blue: '#2563eb', 
+                            emerald: '#10b981', 
+                            purple: '#8b5cf6' 
+                        } 
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body { background-color: #f8fafc; }
+        .bg-gradient-brand { background: linear-gradient(135deg, #d81b60 0%, #f57c00 50%, #fbc02d 100%); }
+        .text-gradient-brand { background: linear-gradient(135deg, #d81b60 0%, #f57c00 50%, #fbc02d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .view-section { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Blobs for Login */
+        .blob { position: absolute; filter: blur(60px); opacity: 0.6; z-index: 0; border-radius: 50%; animation: float 10s infinite ease-in-out; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+        }
+
+        /* Sidebar Nav Item Active State */
+        .nav-item.active { background-color: #fff0f5; color: #d81b60; border-right: 4px solid #d81b60; font-weight: 700; }
+        .nav-item.active i { color: #d81b60; }
+
+        /* Format Kertas A4 untuk Layar & Cetak */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto 2rem auto; 
+            padding: 1.5cm; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        @media print {
+            @page { size: A4; margin: 0; }
+            body, html { background-color: #fff !important; height: auto !important; overflow: visible !important; }
+            #admin-layout, main, .overflow-y-auto, .overflow-hidden, .view-section { display: block !important; position: relative !important; height: auto !important; overflow: visible !important; width: 100% !important; }
+            aside, header, #mobile-menu, #login-view, #modal-add-student, #global-alert-modal, .no-print { display: none !important; }
+            #tab-dashboard, #tab-new-comer, #tab-weekly-progress, #tab-cuc { display: none !important; }
+            #tab-report-generator > div:first-child, #tab-report-generator .xl\:col-span-4 { display: none !important; }
+            #tab-report-generator .xl\:col-span-8 { width: 100% !important; display: block !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+            
+            .a4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always !important; break-after: page !important; min-height: auto !important; max-height: 297mm !important; overflow: hidden !important; }
+            .a4-page:last-child { page-break-after: auto !important; break-after: auto !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-800 antialiased overflow-hidden w-full h-screen flex">
+
+    <!-- GLOBAL ALERT MODAL -->
+    <div id="global-alert-modal" class="hidden fixed inset-0 z-[200] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center px-4 transition-opacity">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-sm w-full border border-slate-100 text-center transform transition-all scale-95">
+            <div id="alert-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"></div>
+            <h3 id="alert-title" class="text-xl md:text-2xl font-bold text-brand-dark mb-2"></h3>
+            <p id="alert-desc" class="text-slate-500 text-sm mb-6"></p>
+            <button onclick="closeAlertModal()" class="w-full px-6 py-3.5 bg-brand-dark text-white rounded-xl font-bold hover:bg-black transition-all shadow-md">Oke</button>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH SISWA BARU -->
+    <div id="modal-add-student" class="hidden fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center px-4 transition-opacity">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-lg w-full border border-slate-100 transform transition-all max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl md:text-2xl font-bold text-brand-dark">Tambah Siswa Baru</h3>
+                    <p class="text-slate-500 text-xs md:text-sm mt-1">Registrasi identitas & buatkan akun resmi.</p>
+                </div>
+                <button onclick="closeModal('modal-add-student')" class="w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-slate-200 transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Nama Lengkap</label>
+                    <input type="text" id="add-nama" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-pink outline-none text-sm transition-all" placeholder="Contoh: Budi Santoso">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Email (Username)</label>
+                        <input type="email" id="add-email" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-pink outline-none text-sm transition-all" placeholder="budi@email.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">No. WhatsApp</label>
+                        <input type="number" id="add-wa" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-pink outline-none text-sm transition-all" placeholder="0812...">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Asal Sekolah</label>
+                        <input type="text" id="add-sekolah" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-pink outline-none text-sm transition-all" placeholder="SMAN 1 Jakarta">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Kelas</label>
+                        <select id="add-kelas" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-pink outline-none text-sm transition-all appearance-none cursor-pointer">
+                            <option>12 SMA</option><option>11 SMA</option><option>10 SMA</option><option>Alumni / Gap Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Pilih Paket Belajar</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="border-2 border-slate-200 rounded-xl p-3 flex items-center cursor-pointer hover:border-brand-orange transition-all has-[:checked]:border-brand-orange has-[:checked]:bg-orange-50">
+                            <input type="radio" name="paket" value="EXE-CUTIVE GOLD" class="hidden" checked>
+                            <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-brand-orange shrink-0"><i class="fas fa-medal"></i></div>
+                            <div class="ml-3"><div class="font-bold text-sm">EXE-cutive</div><div class="text-[10px] text-slate-500">Gold / Regular</div></div>
+                        </label>
+                        <label class="border-2 border-slate-200 rounded-xl p-3 flex items-center cursor-pointer hover:border-slate-400 transition-all has-[:checked]:border-slate-500 has-[:checked]:bg-slate-100">
+                            <input type="radio" name="paket" value="EXE-CUTIVE SILVER" class="hidden">
+                            <div class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center text-slate-600 shrink-0"><i class="fas fa-shield-alt"></i></div>
+                            <div class="ml-3"><div class="font-bold text-sm">Basic</div><div class="text-[10px] text-slate-500">Silver</div></div>
+                        </label>
+                    </div>
+                </div>
+                <div class="pt-4 mt-4 border-t border-slate-100 flex justify-end gap-3">
+                    <button onclick="closeModal('modal-add-student')" class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50">Batal</button>
+                    <button id="btn-save-student" onclick="simpanSiswaBaru(this)" class="px-6 py-3 bg-brand-dark text-white rounded-xl font-bold text-sm hover:bg-black shadow-lg"><i class="fas fa-save mr-2"></i>Aktivasi Akun</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STAGE 1: LOGIN VIEW -->
+    <section id="login-view" class="fixed inset-0 z-50 bg-slate-50 flex items-center justify-center px-4 transition-opacity duration-500">
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+            <div class="blob bg-pink-300 w-[500px] h-[500px] top-[-10%] left-[-10%] mix-blend-multiply"></div>
+            <div class="blob bg-yellow-200 w-[400px] h-[400px] top-[20%] right-[-5%] mix-blend-multiply" style="animation-delay: 2s;"></div>
+            <div class="blob bg-orange-300 w-[600px] h-[600px] bottom-[-20%] left-[20%] mix-blend-multiply" style="animation-delay: 4s;"></div>
+        </div>
+
+        <div class="bg-white/90 backdrop-blur-xl p-8 md:p-12 rounded-[2rem] shadow-2xl border border-white text-center relative overflow-hidden max-w-md w-full animate-fade-in">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-brand"></div>
+            <div class="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <img src="https://i.ibb.co.com/1t47X5zv/favicon.png" alt="EXE Logo" class="h-12 object-contain">
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black text-brand-dark mb-2">Admin Portal</h1>
+            <p class="text-gray-500 text-sm mb-8">Management System &bull; EXE Education</p>
+            
+            <form onsubmit="prosesLogin(event)" class="space-y-5 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Username / Email</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="email" id="admin-username" required class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-brand-pink focus:bg-white transition-all font-medium text-sm" placeholder="admin@exe.com">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="password" id="admin-password" required class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-brand-pink focus:bg-white transition-all font-medium text-sm" placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit" id="btn-login" class="w-full bg-gradient-brand text-white font-bold py-4 rounded-xl hover:shadow-lg hover:-translate-y-1 transition-all mt-4 text-base">Login ke Dashboard</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- STAGE 2: ADMIN LAYOUT (Sidebar + Main Content) -->
+    <div id="admin-layout" class="w-full h-full flex hidden opacity-0 transition-opacity duration-500">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0 shadow-sm z-20">
+            <div class="h-20 flex items-center px-6 border-b border-slate-100 gap-3">
+                <img src="https://i.ibb.co.com/1t47X5zv/favicon.png" alt="EXE Logo" class="h-8 object-contain">
+                <span class="font-black text-xl text-brand-dark tracking-tighter">EXE <span class="text-brand-pink text-base">Edu</span></span>
+            </div>
+            
+            <nav class="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-3">Menu Utama</div>
+                
+                <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active flex items-center px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all font-medium text-sm group mb-1">
+                    <i class="fas fa-layer-group w-6 text-center mr-3 text-slate-400 group-hover:text-brand-pink transition-colors"></i> Dashboard
+                </a>
+                
+                <a href="#" onclick="switchTab('new-comer')" id="nav-new-comer" class="nav-item flex items-center px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all font-medium text-sm group mb-1 relative">
+                    <i class="fas fa-user-plus w-6 text-center mr-3 text-slate-400 group-hover:text-brand-orange transition-colors"></i> New Comer
+                </a>
+                
+                <a href="#" onclick="switchTab('weekly-progress')" id="nav-weekly-progress" class="nav-item flex items-center px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all font-medium text-sm group mb-1">
+                    <i class="fas fa-chart-line w-6 text-center mr-3 text-slate-400 group-hover:text-brand-emerald transition-colors"></i> Weekly Progress
+                </a>
+
+                <a href="#" onclick="switchTab('cuc')" id="nav-cuc" class="nav-item flex items-center px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all font-medium text-sm group mb-1">
+                    <i class="fas fa-brain w-6 text-center mr-3 text-slate-400 group-hover:text-brand-blue transition-colors"></i> CUC <span class="ml-2 text-[9px] bg-blue-100 text-brand-blue px-2 py-0.5 rounded font-black">CLASS</span>
+                </a>
+                
+                <a href="#" onclick="switchTab('report-generator')" id="nav-report-generator" class="nav-item flex items-center px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 transition-all font-medium text-sm group mb-1">
+                    <i class="fas fa-file-pdf w-6 text-center mr-3 text-slate-400 group-hover:text-brand-purple transition-colors"></i> Report Generator
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-slate-100">
+                <div class="bg-slate-50 rounded-xl p-3 flex items-center justify-between border border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-brand-dark text-white flex items-center justify-center font-bold text-xs">AD</div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-700 leading-none" id="display-admin-name">Admin</p>
+                            <p class="text-[10px] text-slate-400 mt-1" id="display-admin-role">Superadmin</p>
+                        </div>
+                    </div>
+                    <button onclick="doLogout()" class="text-slate-400 hover:text-red-500 transition-colors" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <header class="md:hidden h-16 bg-white border-b border-slate-200 flex justify-between items-center px-4 z-20 shrink-0">
+                <div class="flex items-center gap-2">
+                    <img src="https://i.ibb.co.com/1t47X5zv/favicon.png" alt="EXE Logo" class="h-6">
+                    <span class="font-black text-lg text-brand-dark tracking-tighter">EXE <span class="text-brand-pink text-sm">Admin</span></span>
+                </div>
+                <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="text-slate-600 text-xl"><i class="fas fa-bars"></i></button>
+            </header>
+
+            <div id="mobile-menu" class="md:hidden hidden absolute top-16 left-0 w-full bg-white shadow-xl z-30 border-b border-slate-100">
+                <nav class="flex flex-col p-4 space-y-2">
+                    <a href="#" onclick="switchTab('dashboard'); this.parentNode.parentNode.classList.add('hidden')" class="px-4 py-3 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50"><i class="fas fa-layer-group mr-2 text-brand-pink"></i> Dashboard</a>
+                    <a href="#" onclick="switchTab('new-comer'); this.parentNode.parentNode.classList.add('hidden')" class="px-4 py-3 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50"><i class="fas fa-user-plus mr-2 text-brand-orange"></i> New Comer</a>
+                    <a href="#" onclick="switchTab('weekly-progress'); this.parentNode.parentNode.classList.add('hidden')" class="px-4 py-3 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50"><i class="fas fa-chart-line mr-2 text-brand-emerald"></i> Weekly Progress</a>
+                    <a href="#" onclick="switchTab('cuc'); this.parentNode.parentNode.classList.add('hidden')" class="px-4 py-3 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50"><i class="fas fa-brain mr-2 text-brand-blue"></i> CUC</a>
+                    <a href="#" onclick="switchTab('report-generator'); this.parentNode.parentNode.classList.add('hidden')" class="px-4 py-3 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50"><i class="fas fa-file-pdf mr-2 text-brand-purple"></i> Report Generator</a>
+                    <hr class="my-2 border-slate-100">
+                    <a href="#" onclick="doLogout()" class="px-4 py-3 rounded-lg font-bold text-sm text-red-500 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Keluar</a>
+                </nav>
+            </div>
+
+            <!-- Content Scrollable Area -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+                
+                <!-- TABS CONTAINER -->
+                <div id="tab-dashboard" class="view-section active space-y-6 md:space-y-8 max-w-6xl mx-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-brand-dark tracking-tight">Dashboard Overview</h2>
+                            <p class="text-sm text-slate-500 mt-1">Pantau performa platform EXE hari ini.</p>
+                        </div>
+                        <div class="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2">
+                            <i class="far fa-calendar-alt text-brand-blue"></i>
+                            <span class="text-sm font-bold text-slate-700" id="current-date"></span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div class="w-14 h-14 bg-pink-50 text-brand-pink rounded-xl flex items-center justify-center text-2xl shrink-0"><i class="fas fa-users"></i></div>
+                            <div><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Total Siswa Aktif</p><h3 id="dash-total-siswa" class="text-2xl font-black text-slate-800 leading-none">0</h3></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div class="w-14 h-14 bg-blue-50 text-brand-blue rounded-xl flex items-center justify-center text-2xl shrink-0"><i class="fas fa-video"></i></div>
+                            <div><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Sesi Live Hari Ini</p><h3 id="dash-sesi-live" class="text-2xl font-black text-slate-800 leading-none">0 <span class="text-sm text-slate-400 font-medium">Sesi</span></h3></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div class="w-14 h-14 bg-emerald-50 text-brand-emerald rounded-xl flex items-center justify-center text-2xl shrink-0"><i class="fas fa-check-double"></i></div>
+                            <div><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">TO Selesai (Mg Ini)</p><h3 id="dash-to-selesai" class="text-2xl font-black text-slate-800 leading-none">0</h3></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div class="w-14 h-14 bg-orange-50 text-brand-orange rounded-xl flex items-center justify-center text-2xl shrink-0"><i class="fas fa-star-half-alt"></i></div>
+                            <div><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Rata-rata Skor Global</p><h3 id="dash-avg-skor" class="text-2xl font-black text-slate-800 leading-none">0</h3></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                        <div class="lg:col-span-2 bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-lg text-slate-800 flex items-center"><i class="fas fa-chart-area text-brand-purple mr-2"></i> Traffic Pengerjaan Soal</h3>
+                            </div>
+                            <div class="relative h-64 w-full flex-grow flex items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 text-sm font-bold">
+                                <canvas id="dashboardChart" class="hidden"></canvas>
+                                <span id="chart-placeholder">[ Chart Data akan Tampil Di Sini ]</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col overflow-hidden">
+                            <h3 class="font-bold text-lg text-slate-800 mb-6 flex items-center"><i class="fas fa-bolt text-brand-yellow mr-2"></i> Info Sistem</h3>
+                            <div class="flex-grow flex flex-col justify-center items-center text-center text-slate-500">
+                                <i class="fas fa-server text-5xl mb-4 text-slate-200"></i>
+                                <p class="text-sm font-bold">Sistem Terhubung</p>
+                                <p class="text-xs mt-1">Google Sheets Backend v6.0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-new-comer" class="view-section space-y-6 md:space-y-8 max-w-6xl mx-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-brand-dark tracking-tight flex items-center"><i class="fas fa-user-astronaut text-brand-orange mr-3"></i>New Comer Management</h2>
+                            <p class="text-sm text-slate-500 mt-1">Kelola leads dari form Demo dan bantu proses onboarding siswa baru.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between border-l-4 border-l-brand-orange">
+                            <div><p class="text-[10px] font-bold text-slate-400 uppercase">Total Leads Demo</p><h3 id="nc-total-leads" class="text-xl font-black text-slate-700">0 Data</h3></div>
+                            <i class="fas fa-address-book text-3xl text-orange-100"></i>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between border-l-4 border-l-brand-emerald">
+                            <div><p class="text-[10px] font-bold text-slate-400 uppercase">Leads Belum Dihubungi</p><h3 id="nc-leads-pending" class="text-xl font-black text-slate-700">0 Data</h3></div>
+                            <i class="fas fa-clock text-3xl text-emerald-100"></i>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between border-l-4 border-l-brand-pink">
+                            <div><p class="text-[10px] font-bold text-slate-400 uppercase">Konversi Deal</p><h3 id="nc-leads-deal" class="text-xl font-black text-slate-700">0 Data</h3></div>
+                            <i class="fas fa-handshake text-3xl text-pink-100"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                        <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-lg text-slate-800"><i class="fas fa-filter text-slate-400 mr-2"></i> Antrean Tamu (Leads Baru)</h3>
+                            <button onclick="loadLeadsData()" class="text-xs font-bold text-brand-blue bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4 md:p-5">Tanggal Masuk</th>
+                                        <th class="p-4 md:p-5">Nama Tamu</th>
+                                        <th class="p-4 md:p-5">Asal Sekolah & Kelas</th>
+                                        <th class="p-4 md:p-5">Status</th>
+                                        <th class="p-4 md:p-5 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-leads-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="5" class="p-8 text-center text-slate-400 italic">Memuat data leads...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-weekly-progress" class="view-section space-y-6 md:space-y-8 max-w-6xl mx-auto">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100">
+                        <div>
+                            <h2 class="text-2xl font-black text-brand-dark tracking-tight flex items-center"><i class="fas fa-chart-line text-brand-emerald mr-3"></i>Weekly Progress</h2>
+                            <p class="text-sm text-slate-500 mt-1">Evaluasi tren nilai siswa dari Try Out terbaru.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 w-full lg:w-auto">
+                            <select id="wp-filter-kelas" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none text-sm font-bold text-slate-600 flex-1 lg:flex-none">
+                                <option value="Semua Kelas">Semua Kelas</option>
+                                <option value="12 SMA">12 SMA</option>
+                                <option value="11 SMA">11 SMA</option>
+                                <option value="10 SMA">10 SMA</option>
+                                <option value="Alumni / Gap Year">Alumni / Gap Year</option>
+                            </select>
+                            <button onclick="loadWeeklyProgress()" class="px-4 py-2.5 bg-brand-emerald text-white rounded-xl font-bold hover:bg-emerald-600 shadow-sm text-sm"><i class="fas fa-search mr-2"></i>Filter</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4 md:p-6">Nama Siswa</th>
+                                        <th class="p-4 md:p-6">Paket & Kelas</th>
+                                        <th class="p-4 md:p-6 text-center">Skor TO Terbaru</th>
+                                        <th class="p-4 md:p-6 text-center">Tren vs Sebelumnya</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-wp-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Pilih filter dan klik cari untuk memuat data.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-cuc" class="view-section space-y-6 md:space-y-8 max-w-4xl mx-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-brand-dark tracking-tight flex items-center"><i class="fas fa-brain text-brand-blue mr-3"></i>Concept Understanding (CUC)</h2>
+                            <p class="text-sm text-slate-500 mt-1">Catat tingkat pemahaman siswa saat sesi privat atau live class.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100">
+                        <div class="space-y-6">
+                            <div class="flex flex-col sm:flex-row gap-3 items-end">
+                                <div class="flex-1 w-full">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Cari Nama Siswa</label>
+                                    <div class="relative">
+                                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                        <input type="text" id="cuc-student-name" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-blue outline-none text-sm transition-all font-bold" placeholder="Ketik nama lengkap siswa...">
+                                    </div>
+                                </div>
+                                <button id="btn-cek-cuc" onclick="cekSiswaCUC(this)" class="w-full sm:w-auto px-8 py-3 bg-brand-dark text-white rounded-xl font-bold shadow-md hover:bg-black transition-all text-sm h-[46px] shrink-0">Cek Siswa</button>
+                            </div>
+
+                            <div id="cuc-student-info" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-xl border border-blue-100 animate-fade-in">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Paket Berlangganan</label>
+                                    <div class="font-black text-brand-blue text-sm" id="cuc-paket-display">-</div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pilih Mata Pelajaran</label>
+                                    <select id="cuc-mapel" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white outline-none text-sm font-bold text-slate-700 cursor-pointer shadow-sm">
+                                        <option>Penalaran Umum</option>
+                                        <option>Penalaran Matematika</option>
+                                        <option>Literasi B. Indonesia</option>
+                                        <option>Pengetahuan Kuantitatif</option>
+                                        <option>Matematika Dasar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="cuc-session-details" class="hidden space-y-6 pt-6 border-t border-slate-100 animate-fade-in">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Topik Spesifik yang Diajarkan</label>
+                                    <input type="text" id="cuc-topik" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-blue outline-none text-sm transition-all" placeholder="Contoh: Logika Proposisi">
+                                </div>
+                                
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Total Soal</label>
+                                        <input type="number" id="cuc-total-soal" oninput="kalkulasiAkurasiCUC()" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-blue outline-none text-2xl font-black text-center text-slate-700" placeholder="0">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Soal Benar</label>
+                                        <input type="number" id="cuc-soal-benar" oninput="kalkulasiAkurasiCUC()" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-emerald outline-none text-2xl font-black text-center text-brand-emerald" placeholder="0">
+                                    </div>
+                                    <div class="col-span-2 md:col-span-1">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Akurasi (%)</label>
+                                        <div class="w-full h-[58px] bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center text-2xl font-black text-slate-400" id="cuc-akurasi-display">0%</div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Deskripsi & Catatan Kondisi Siswa</label>
+                                    <textarea id="cuc-catatan" rows="4" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-blue outline-none text-sm transition-all resize-none leading-relaxed" placeholder="Gambarkan pemahaman siswa, kelebihan, dan kelemahan saat sesi berlangsung..."></textarea>
+                                </div>
+
+                                <div class="flex justify-end pt-4 border-t border-slate-100">
+                                    <button id="btn-save-cuc" onclick="simpanCUC(this)" class="w-full sm:w-auto px-8 py-3.5 bg-brand-blue text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-all text-sm flex items-center justify-center gap-2">
+                                        <i class="fas fa-save"></i> Simpan ke Database
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-report-generator" class="view-section space-y-6 md:space-y-8 max-w-[1400px] mx-auto pb-20">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-brand-dark tracking-tight flex items-center"><i class="fas fa-file-invoice text-brand-purple mr-3"></i>Report Generator</h2>
+                            <p class="text-sm text-slate-500 mt-1">Mesin pembuat rapor otomatis bulanan/semester untuk dilaporkan ke orang tua.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 items-start">
+                        <!-- Configuration Form -->
+                        <div class="xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100 sticky top-6 no-print">
+                            <h3 class="font-bold text-lg text-slate-800 mb-6 border-b border-slate-100 pb-4"><i class="fas fa-cog text-slate-400 mr-2"></i> Konfigurasi Rapor</h3>
+                            
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Periode Cetak</label>
+                                    <input type="text" id="rep-periode" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 outline-none text-sm font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-brand-purple" placeholder="Misal: Agustus 2026" value="Agustus 2026">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Nama Siswa</label>
+                                    <input type="text" id="rep-nama-siswa" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 outline-none text-sm font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-brand-purple" placeholder="Ketik nama lengkap siswa...">
+                                </div>
+
+                                <button id="btn-gen-report" onclick="generateReport()" class="w-full bg-brand-purple text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all mt-6 text-sm flex items-center justify-center gap-2">
+                                    <i class="fas fa-sync-alt"></i> Tarik Data Rapor
+                                </button>
+                                <button id="btn-print-report" onclick="window.print()" class="w-full bg-brand-dark text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:bg-black transition-all mt-2 text-sm flex items-center justify-center gap-2 hidden">
+                                    <i class="fas fa-print"></i> Cetak ke PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Preview Area -->
+                        <div class="xl:col-span-8 flex flex-col items-center justify-start bg-slate-200/80 rounded-[2rem] p-4 md:p-8 border border-slate-300 shadow-inner overflow-hidden">
+                            
+                            <!-- WRAPPER UNTUK SEMUA HALAMAN A4 -->
+                            <div id="cetak-wrapper" class="w-full flex flex-col items-center">
+
+                                <!-- HALAMAN 1: TRY OUT -->
+                                <div class="a4-page">
+                                    <div class="flex justify-between items-end border-b-[3px] border-[#d81b60] pb-4 mb-8">
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <img src="https://i.ibb.co.com/1t47X5zv/favicon.png" alt="EXE Logo" class="h-8">
+                                                <span class="text-3xl font-black text-[#1f2022] tracking-tighter" style="font-family: 'Arial Black', Impact, sans-serif;">EXE<span class="text-[#d81b60]">Education</span></span>
+                                            </div>
+                                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Laporan Evaluasi Belajar</p>
+                                        </div>
+                                        <div class="text-sm font-medium text-slate-500 report-tgl-display">Bulan ...</div>
+                                    </div>
+                                    
+                                    <div class="bg-[#f8f9fa] rounded-xl border border-slate-200 p-5 mb-10">
+                                        <p class="font-bold text-slate-800 text-lg mb-1">Nama: <span class="report-nama-display">-</span></p>
+                                        <p class="font-bold text-slate-800 text-lg">Kelas: <span class="report-kelas-display">-</span> (<span class="report-paket-display">-</span>)</p>
+                                    </div>
+
+                                    <div>
+                                        <h4 class="text-sm font-black uppercase text-[#9b51e0] border-b border-slate-200 pb-2 mb-5">1. RATA-RATA TRY OUT</h4>
+                                        <div class="bg-[#faf5ff] border border-[#e9d5ff] rounded-xl p-6 flex items-center mb-6 shadow-sm">
+                                            <span class="font-black text-6xl text-[#1f2022] mr-5 tracking-tighter" id="report-to-avg">0</span>
+                                            <span class="text-xl text-[#10b981] font-bold" id="report-to-cat">(Kategori: -)</span>
+                                        </div>
+
+                                        <div class="mb-6">
+                                            <table class="w-full text-sm">
+                                                <thead class="text-[11px] font-bold text-slate-400 uppercase border-b border-slate-200">
+                                                    <tr><th class="text-left pb-3">Mata Pelajaran Ujian</th><th class="text-right pb-3">Skor IRT</th></tr>
+                                                </thead>
+                                                <tbody id="report-to-table" class="divide-y divide-slate-100 text-slate-700">
+                                                    <tr><td colspan="2" class="py-3 text-center text-slate-400">Belum ada data Try Out</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-8">
+                                            <div>
+                                                <h5 class="text-xs font-black uppercase text-slate-500 border-b border-slate-200 pb-2 mb-4">Topik Dikuasai</h5>
+                                                <ul id="report-to-strength" class="text-sm text-slate-700 list-disc pl-5 space-y-2">-</ul>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-xs font-black uppercase text-slate-500 border-b border-slate-200 pb-2 mb-4">Perlu Evaluasi</h5>
+                                                <ul id="report-to-weakness" class="text-sm text-slate-700 list-disc pl-5 space-y-2">-</ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- HALAMAN 2: BANK SOAL -->
+                                <div class="a4-page">
+                                    <div class="flex justify-between items-end border-b-[3px] border-[#d81b60] pb-4 mb-8">
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <img src="https://i.ibb.co.com/1t47X5zv/favicon.png" alt="EXE Logo" class="h-8">
+                                                <span class="text-3xl font-black text-[#1f2022] tracking-tighter" style="font-family: 'Arial Black', Impact, sans-serif;">EXE<span class="text-[#d81b60]">Education</span></span>
+                                            </div>
+                                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Laporan Evaluasi Belajar</p>
+                                        </div>
+                                        <div class="text-sm font-medium text-slate-500 report-tgl-display">Bulan ...</div>
+                                    </div>
+                                    
+                                    <div class="bg-[#f8f9fa] rounded-xl border border-slate-200 p-5 mb-10">
+                                        <p class="font-bold text-slate-800 text-lg mb-1">Nama: <span class="report-nama-display">-</span></p>
+                                        <p class="font-bold text-slate-800 text-lg">Kelas: <span class="report-kelas-display">-</span> (<span class="report-paket-display">-</span>)</p>
+                                    </div>
+
+                                    <div>
+                                        <h4 class="text-sm font-black uppercase text-[#f57c00] border-b border-slate-200 pb-2 mb-5">2. PROGRESS LATIHAN MANDIRI (BANK SOAL)</h4>
+                                        <div class="bg-[#fff7ed] border border-[#ffedd5] rounded-xl p-6 flex items-center mb-6 shadow-sm">
+                                            <span class="font-black text-6xl text-[#1f2022] mr-5 tracking-tighter" id="report-bs-avg">0%</span>
+                                            <span class="text-xl text-[#f57c00] font-bold">(Rata-rata Akurasi Benar)</span>
+                                        </div>
+
+                                        <div class="mb-6">
+                                            <table class="w-full text-sm">
+                                                <thead class="text-[11px] font-bold text-slate-400 uppercase border-b border-slate-200">
+                                                    <tr><th class="text-left pb-3">Mata Pelajaran Latihan</th><th class="text-right pb-3">Akurasi</th></tr>
+                                                </thead>
+                                                <tbody id="report-bs-table" class="divide-y divide-slate-100 text-slate-700">
+                                                     <tr><td colspan="2" class="py-3 text-center text-slate-400">Belum ada data Latihan Mandiri</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-8">
+                                            <div>
+                                                <h5 class="text-xs font-black uppercase text-slate-500 border-b border-slate-200 pb-2 mb-4">Materi Dikuasai</h5>
+                                                <ul id="report-bs-strength" class="text-sm text-slate-700 list-disc pl-5 space-y-2">-</ul>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-xs font-black uppercase text-slate-500 border-b border-slate-200 pb-2 mb-4">Perlu Evaluasi</h5>
+                                                <ul id="report-bs-weakness" class="text-sm text-slate-700 list-disc pl-5 space-y-2">-</ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- HALAMAN 3: TREN GRAFIK -->
+                                <div class="a4-page">
+                                    <div class="flex justify-between items-end border-b-[3px] border-[#d81b60] pb-4 mb-8">
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <img src="https://i.ibb.co.com/1t47X5zv/favicon.png" alt="EXE Logo" class="h-8">
+                                                <span class="text-3xl font-black text-[#1f2022] tracking-tighter" style="font-family: 'Arial Black', Impact, sans-serif;">EXE<span class="text-[#d81b60]">Education</span></span>
+                                            </div>
+                                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Laporan Evaluasi Belajar</p>
+                                        </div>
+                                        <div class="text-sm font-medium text-slate-500 report-tgl-display">Bulan ...</div>
+                                    </div>
+                                    
+                                    <div class="bg-[#f8f9fa] rounded-xl border border-slate-200 p-5 mb-10">
+                                        <p class="font-bold text-slate-800 text-lg mb-1">Nama: <span class="report-nama-display">-</span></p>
+                                        <p class="font-bold text-slate-800 text-lg">Kelas: <span class="report-kelas-display">-</span> (<span class="report-paket-display">-</span>)</p>
+                                    </div>
+
+                                    <div>
+                                        <h4 class="text-sm font-black uppercase text-[#2563eb] border-b border-slate-200 pb-2 mb-5">3. TREN PERKEMBANGAN BELAJAR</h4>
+                                        <div class="w-full h-80 bg-slate-50 border border-slate-200 flex flex-col items-center justify-center rounded-xl p-4">
+                                             <canvas id="reportChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- HALAMAN 4: CUC & TTD -->
+                                <div class="a4-page">
+                                    <div class="flex justify-between items-end border-b-[3px] border-[#d81b60] pb-4 mb-8">
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <img src="https://i.ibb.co.com/1t47X5zv/favicon.png" alt="EXE Logo" class="h-8">
+                                                <span class="text-3xl font-black text-[#1f2022] tracking-tighter" style="font-family: 'Arial Black', Impact, sans-serif;">EXE<span class="text-[#d81b60]">Education</span></span>
+                                            </div>
+                                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Laporan Evaluasi Belajar</p>
+                                        </div>
+                                        <div class="text-sm font-medium text-slate-500 report-tgl-display">Bulan ...</div>
+                                    </div>
+                                    
+                                    <div class="bg-[#f8f9fa] rounded-xl border border-slate-200 p-5 mb-10">
+                                        <p class="font-bold text-slate-800 text-lg mb-1">Nama: <span class="report-nama-display">-</span></p>
+                                        <p class="font-bold text-slate-800 text-lg">Kelas: <span class="report-kelas-display">-</span> (<span class="report-paket-display">-</span>)</p>
+                                    </div>
+
+                                    <div>
+                                        <h4 class="text-sm font-black uppercase text-[#10b981] border-b border-slate-200 pb-2 mb-5">4. CATATAN KELAS / PEMAHAMAN SISWA (CUC)</h4>
+                                        <div id="report-cuc-notes" class="bg-slate-50 p-6 rounded-xl border border-slate-200 text-sm text-slate-700 leading-loose text-justify font-medium">
+                                            Belum ada catatan observasi untuk siswa pada periode ini.
+                                        </div>
+                                    </div>
+
+                                    <!-- TANDA TANGAN -->
+                                    <div class="mt-20 flex justify-end">
+                                        <div class="text-center relative">
+                                            <p class="text-sm text-slate-700 mb-1">Bekasi, <span id="tgl-cetak-ttd">...</span></p>
+                                            <p class="text-sm text-slate-700 mb-6">Mengetahui,</p>
+                                            
+                                            <div class="relative w-48 mx-auto h-24 flex items-end justify-center mb-2">
+                                                <img src="https://i.ibb.co.com/sdNVv9rP/EXE-3.png" alt="Stempel EXE" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 opacity-80 -rotate-6 mix-blend-multiply pointer-events-none z-0">
+                                            </div>
+
+                                            <p class="font-bold text-slate-900 underline relative z-10">Mochamad Wahyu Ardiatama</p>
+                                            <p class="text-sm text-slate-500 relative z-10">Academic Supervisor</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // CONFIG
+        const API_URL = "https://script.google.com/macros/s/AKfycbzKtUDceyf2kV0VUre9C9zhXMmJkykwLnLa0FMFxfgmdEjtW5MjeYWkRr9VhizEkMw9/exec";
+        const $ = id => document.getElementById(id);
+        
+        let currentAdmin = null;
+        let globalReportChart = null;
+
+        window.onload = () => {
+            const today = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            $('current-date').innerText = today.toLocaleDateString('id-ID', options);
+            $('tgl-cetak-ttd').innerText = today.toLocaleDateString('id-ID', options);
+
+            const savedSession = localStorage.getItem('exe_admin_session');
+            if(savedSession) {
+                currentAdmin = JSON.parse(savedSession);
+                $('display-admin-name').innerText = currentAdmin.Nama_Admin || "Admin";
+                $('display-admin-role').innerText = currentAdmin.Role || "Staff";
+                $('login-view').classList.add('hidden');
+                const adminLayout = $('admin-layout');
+                adminLayout.classList.remove('hidden');
+                setTimeout(() => adminLayout.classList.remove('opacity-0'), 50);
+                switchTab('dashboard');
+            }
+        };
+
+        // --- UTILS & MODAL ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            $(`tab-${tabId}`).classList.add('active');
+            $(`nav-${tabId}`).classList.add('active');
+
+            if (tabId === 'dashboard') loadDashboardData();
+            if (tabId === 'new-comer') loadLeadsData();
+        }
+
+        function showAlert(type, title, desc) {
+            const modal = $('global-alert-modal');
+            const iconEl = $('alert-icon');
+            if (type === 'success') iconEl.className = "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl bg-green-100 text-green-500", iconEl.innerHTML = "<i class='fas fa-check'></i>";
+            else if (type === 'warning') iconEl.className = "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl bg-orange-100 text-brand-orange", iconEl.innerHTML = "<i class='fas fa-exclamation-triangle'></i>";
+            else iconEl.className = "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl bg-blue-100 text-brand-blue", iconEl.innerHTML = "<i class='fas fa-info'></i>";
+            
+            $('alert-title').innerText = title; $('alert-desc').innerText = desc;
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.firstElementChild.classList.remove('scale-95'), 10);
+        }
+
+        function closeAlertModal() {
+            const modal = $('global-alert-modal');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+        }
+
+        function openModal(id) { const m = $(id); m.classList.remove('hidden'); setTimeout(() => m.firstElementChild.classList.remove('scale-95'), 10); }
+        function closeModal(id) { const m = $(id); m.firstElementChild.classList.add('scale-95'); setTimeout(() => m.classList.add('hidden'), 200); }
+
+        // --- LOGIN ---
+        async function prosesLogin(e) {
+            e.preventDefault();
+            const btn = $('btn-login'); const oriText = btn.innerHTML;
+            btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-2'></i> Memverifikasi..."; btn.disabled = true;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST', body: JSON.stringify({ action: "admin_login", email: $('admin-username').value, password: $('admin-password').value })
+                });
+                const data = await res.json();
+                if(data.status === "success") {
+                    currentAdmin = data.data.admin;
+                    localStorage.setItem('exe_admin_session', JSON.stringify(currentAdmin));
+                    $('display-admin-name').innerText = currentAdmin.Nama_Admin || "Admin";
+                    $('display-admin-role').innerText = currentAdmin.Role || "Staff";
+                    
+                    $('login-view').classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => {
+                        $('login-view').classList.add('hidden');
+                        const adminLayout = $('admin-layout');
+                        adminLayout.classList.remove('hidden');
+                        setTimeout(() => adminLayout.classList.remove('opacity-0'), 50);
+                        switchTab('dashboard'); 
+                    }, 500);
+                } else { showAlert('warning', 'Gagal Login', data.message); }
+            } catch(e) { showAlert('warning', 'Error', 'Koneksi ke server gagal.'); } finally { btn.innerHTML = oriText; btn.disabled = false; }
+        }
+
+        function doLogout() {
+            localStorage.removeItem('exe_admin_session'); currentAdmin = null;
+            $('admin-layout').classList.add('opacity-0');
+            setTimeout(() => {
+                $('admin-layout').classList.add('hidden');
+                $('admin-username').value = ""; $('admin-password').value = "";
+                const loginView = $('login-view');
+                loginView.classList.remove('hidden');
+                setTimeout(() => { loginView.classList.remove('opacity-0', 'pointer-events-none'); }, 50);
+            }, 500);
+        }
+
+        // --- DASHBOARD ---
+        async function loadDashboardData() {
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_admin_dashboard" }) });
+                const data = await res.json();
+                if(data.status === "success") {
+                    $('dash-total-siswa').innerText = data.data.total_siswa;
+                    $('dash-sesi-live').innerHTML = `${data.data.sesi_live} <span class="text-sm text-slate-400 font-medium">Sesi</span>`;
+                    $('dash-to-selesai').innerText = data.data.to_minggu_ini;
+                    $('dash-avg-skor').innerText = data.data.avg_global;
+                }
+            } catch(e) { console.error("Gagal load dashboard", e); }
+        }
+
+        // --- NEW COMER ---
+        async function loadLeadsData() {
+            const tbody = $('table-leads-body');
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 italic"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>`;
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_leads" }) });
+                const data = await res.json();
+                if(data.status === "success" && data.data) {
+                    const leads = data.data;
+                    $('nc-total-leads').innerText = `${leads.length} Data`;
+                    const pending = leads.filter(l => !l.Status_FollowUp || String(l.Status_FollowUp).trim().toLowerCase() !== "deal").length;
+                    $('nc-leads-pending').innerText = `${pending} Data`;
+                    const deal = leads.length - pending;
+                    const dealPercent = leads.length > 0 ? Math.round((deal / leads.length) * 100) : 0;
+                    $('nc-leads-deal').innerHTML = `${dealPercent}% <span class="text-xs text-green-500 font-normal">Deal</span>`;
+
+                    if(leads.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 italic">Belum ada data leads tamu.</td></tr>`;
+                    } else {
+                        tbody.innerHTML = leads.map((l, i) => {
+                            const isDeal = l.Status_FollowUp && String(l.Status_FollowUp).trim().toLowerCase() === "deal";
+                            const statusBadge = isDeal ? `<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-md">Deal (Siswa)</span>` : `<span class="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded-md">Pending</span>`;
+                            const waLink = `https://wa.me/62${String(l.Telepon).replace(/^0+/, '')}?text=Halo%20${encodeURIComponent(l.Nama)},%20kami%20dari%20EXE%20Education%20Centre.`;
+                            
+                            // Safe escape for inline onclick
+                            const safeNama = (l.Nama||'').replace(/'/g, "\\'");
+                            const safeEmail = (l.Email||'').replace(/'/g, "\\'");
+                            const safeWa = (l.Telepon||'').replace(/'/g, "\\'");
+                            const safeSekolah = (l.Sekolah||'').replace(/'/g, "\\'");
+                            
+                            return `
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-4 font-medium text-slate-600 text-xs">${new Date(l.Timestamp).toLocaleDateString('id-ID')}</td>
+                                <td class="p-4"><div class="font-bold text-slate-800">${l.Nama}</div><div class="text-xs text-slate-400">${l.Email}</div></td>
+                                <td class="p-4"><div class="text-slate-700">${l.Sekolah||'-'}</div><div class="text-xs text-slate-400">${l.Kelas||'-'}</div></td>
+                                <td class="p-4">${statusBadge}</td>
+                                <td class="p-4 text-center">
+                                    <a href="${waLink}" target="_blank" class="inline-flex w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-500 hover:text-white transition-colors items-center justify-center mx-1" title="Follow Up WA"><i class="fab fa-whatsapp"></i></a>
+                                    ${!isDeal ? `<button onclick="siapkanAktivasi('${safeNama}', '${safeEmail}', '${safeWa}', '${safeSekolah}')" class="w-8 h-8 rounded-lg bg-brand-dark text-white hover:bg-black transition-colors mx-1" title="Jadikan Siswa Resmi"><i class="fas fa-check"></i></button>` : ''}
+                                </td>
+                            </tr>`;
+                        }).join('');
+                    }
+                }
+            } catch(e) { tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400 italic">Gagal memuat data.</td></tr>`; }
+        }
+
+        function siapkanAktivasi(nama, email, wa, sekolah) {
+            $('add-nama').value = nama; $('add-email').value = email; $('add-wa').value = wa; $('add-sekolah').value = sekolah;
+            openModal('modal-add-student');
+        }
+
+        async function simpanSiswaBaru(btn) {
+            const req = {
+                action: "aktivasi_siswa",
+                nama: $('add-nama').value, email: $('add-email').value, wa: $('add-wa').value,
+                sekolah: $('add-sekolah').value, kelas: $('add-kelas').value,
+                paket: document.querySelector('input[name="paket"]:checked').value
+            };
+            if(!req.nama || !req.email) { showAlert('warning', 'Validasi', 'Nama dan Email wajib diisi!'); return; }
+
+            const oriText = btn.innerHTML; btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-2'></i> Proses..."; btn.disabled = true;
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(req) });
+                const data = await res.json();
+                if(data.status === "success") {
+                    closeModal('modal-add-student');
+                    showAlert('success', 'Berhasil!', `Siswa aktif. Password Generate: ${data.data.password_generated}`);
+                    loadLeadsData();
+                } else { showAlert('warning', 'Gagal', data.message); }
+            } catch(e) { showAlert('warning', 'Error', 'Gagal ke server.'); } finally { btn.innerHTML = oriText; btn.disabled = false; }
+        }
+
+        // --- WEEKLY PROGRESS ---
+        async function loadWeeklyProgress() {
+            const kls = $('wp-filter-kelas').value;
+            const tbody = $('table-wp-body');
+            tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 italic"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>`;
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_weekly_progress", kelas: kls }) });
+                const data = await res.json();
+                if(data.status === "success") {
+                    const rpt = data.data;
+                    if(!rpt || rpt.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Belum ada data TO untuk kelas ini.</td></tr>`; return; }
+                    
+                    tbody.innerHTML = rpt.map(r => {
+                        let trenBadge = `<span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold">Tetap</span>`;
+                        if(r.tren === "Naik") trenBadge = `<span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold"><i class="fas fa-level-up-alt mr-1"></i>Naik</span>`;
+                        if(r.tren === "Turun") trenBadge = `<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold"><i class="fas fa-level-down-alt mr-1"></i>Turun</span>`;
+                        
+                        return `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-4 md:p-6 font-bold text-slate-800">${r.nama}</td>
+                            <td class="p-4 md:p-6"><span class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">${r.paket} • ${r.kelas}</span></td>
+                            <td class="p-4 md:p-6 text-center font-bold text-brand-dark">${r.skor_terbaru}</td>
+                            <td class="p-4 md:p-6 text-center">${trenBadge}</td>
+                        </tr>`;
+                    }).join('');
+                }
+            } catch(e) { tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-400 italic">Gagal memuat.</td></tr>`; }
+        }
+
+        // --- CUC ---
+        let currentSiswaCUC = null;
+        async function cekSiswaCUC(btn) {
+            const nama = $('cuc-student-name').value;
+            if(!nama) { showAlert('warning', 'Perhatian', 'Ketik nama siswa dulu!'); return; }
+            
+            const oriText = btn.innerHTML; btn.innerHTML = "<i class='fas fa-spinner fa-spin'></i>"; btn.disabled = true;
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "cek_siswa_cuc", nama: nama }) });
+                const data = await res.json();
+                if(data.status === "success") {
+                    currentSiswaCUC = data.data;
+                    $('cuc-student-name').value = currentSiswaCUC.nama;
+                    $('cuc-paket-display').innerText = `${currentSiswaCUC.paket} (${currentSiswaCUC.kelas})`;
+                    $('cuc-student-info').classList.remove('hidden');
+                    $('cuc-session-details').classList.remove('hidden');
+                } else { showAlert('warning', 'Tidak Ditemukan', data.message); }
+            } catch(e) { showAlert('warning', 'Error', 'Gagal mengecek siswa.'); } finally { btn.innerHTML = oriText; btn.disabled = false; }
+        }
+
+        function kalkulasiAkurasiCUC() {
+            const total = parseInt($('cuc-total-soal').value) || 0;
+            const benar = parseInt($('cuc-soal-benar').value) || 0;
+            const display = $('cuc-akurasi-display');
+            
+            if (total === 0) { display.innerText = "0%"; display.className = "w-full h-[58px] bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center text-2xl font-black text-slate-400"; } 
+            else {
+                let p = Math.round((benar / total) * 100); if (p > 100) p = 100;
+                let col = "text-slate-700 bg-slate-50";
+                if (p >= 80) col = "text-green-500 bg-green-50 border-green-200";
+                else if (p <= 50) col = "text-red-500 bg-red-50 border-red-200";
+                else col = "text-brand-blue bg-blue-50 border-blue-200";
+                
+                display.innerText = `${p}%`; display.className = `w-full h-[58px] rounded-xl border flex items-center justify-center text-3xl font-black transition-colors ${col}`;
+            }
+        }
+
+        async function simpanCUC(btn) {
+            const req = {
+                action: "save_cuc", nama: currentSiswaCUC.nama, paket: currentSiswaCUC.paket,
+                bulan: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+                mapel: $('cuc-mapel').value, topik: $('cuc-topik').value,
+                total_soal: $('cuc-total-soal').value, soal_benar: $('cuc-soal-benar').value,
+                akurasi: parseInt($('cuc-akurasi-display').innerText), catatan: $('cuc-catatan').value
+            };
+            if(!req.topik || !req.catatan) { showAlert('warning', 'Belum Lengkap', 'Topik dan Catatan wajib diisi!'); return; }
+
+            const oriText = btn.innerHTML; btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-2'></i> Menyimpan..."; btn.disabled = true;
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(req) });
+                const data = await res.json();
+                if(data.status === "success") {
+                    showAlert('success', 'Tersimpan!', 'Catatan CUC berhasil disimpan.');
+                    $('cuc-student-name').value = ""; $('cuc-topik').value = ""; $('cuc-total-soal').value = ""; $('cuc-soal-benar').value = ""; $('cuc-catatan').value = "";
+                    $('cuc-student-info').classList.add('hidden'); $('cuc-session-details').classList.add('hidden');
+                    kalkulasiAkurasiCUC(); currentSiswaCUC = null;
+                }
+            } catch(e) { showAlert('warning', 'Error', 'Gagal menyimpan.'); } finally { btn.innerHTML = oriText; btn.disabled = false; }
+        }
+
+        // --- REPORT GENERATOR ---
+        async function generateReport() {
+            const nama = $('rep-nama-siswa').value;
+            const bulan = $('rep-periode').value;
+            if(!nama) { showAlert('warning', 'Perhatian', 'Ketik nama siswa dulu!'); return; }
+
+            const btn = $('btn-gen-report'); const oriText = btn.innerHTML;
+            btn.innerHTML = "<i class='fas fa-spinner fa-spin mr-2'></i> Menarik Data..."; btn.disabled = true;
+
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "get_report_data", nama: nama, bulan: bulan }) });
+                const data = await res.json();
+                if(data.status === "success") {
+                    renderReportView(data.data, bulan);
+                    $('btn-print-report').classList.remove('hidden');
+                    showAlert('success', 'Berhasil', 'Data rapor siap dicetak.');
+                } else { showAlert('warning', 'Tidak Ditemukan', data.message); }
+            } catch(e) { showAlert('warning', 'Error', 'Gagal menarik rapor.'); } finally { btn.innerHTML = oriText; btn.disabled = false; }
+        }
+
+        function renderReportView(d, bulan) {
+            // Identitas
+            document.querySelectorAll('.report-nama-display').forEach(el => el.innerText = d.identitas.nama);
+            document.querySelectorAll('.report-kelas-display').forEach(el => el.innerText = d.identitas.kelas);
+            document.querySelectorAll('.report-paket-display').forEach(el => el.innerText = d.identitas.paket);
+            document.querySelectorAll('.report-tgl-display').forEach(el => el.innerText = bulan);
+
+            // Analisis Mapel Helper
+            function analyzeMapel(arrData) {
+                let mapelStats = {};
+                arrData.forEach(r => {
+                    const m = r.Mapel || r.Topik || "Umum";
+                    if(!mapelStats[m]) mapelStats[m] = { sum: 0, count: 0 };
+                    mapelStats[m].sum += Number(r.Skor_Akhir||0); mapelStats[m].count++;
+                });
+                let tableHtml = "", st = [], wk = [];
+                for(let m in mapelStats) {
+                    let avg = mapelStats[m].sum / mapelStats[m].count;
+                    let isTO = arrData === d.tryout;
+                    let formatVal = isTO ? avg.toFixed(1) : Math.round(avg) + "%";
+                    let isGood = isTO ? (avg >= 55) : (avg >= 70);
+                    let col = isGood ? "" : "text-red-500 font-bold";
+                    
+                    tableHtml += `<tr><td class="py-3">${m}</td><td class="text-right font-bold ${col}">${formatVal}</td></tr>`;
+                    if(isGood) st.push(m); else wk.push(m);
+                }
+                return { html: tableHtml, st: st, wk: wk };
+            }
+
+            // Halaman 1: TO
+            let avgTO = 0, sumTO = 0;
+            if(d.tryout.length > 0) { d.tryout.forEach(r => sumTO += Number(r.Skor_Akhir||0)); avgTO = sumTO / d.tryout.length; }
+            $('report-to-avg').innerText = d.tryout.length > 0 ? avgTO.toFixed(1) : "0";
+            let catTO = "Kurang", catCol = "text-red-500";
+            if(avgTO>=85) { catTO="Istimewa"; catCol="text-green-500"; } else if(avgTO>=70) { catTO="Baik"; catCol="text-brand-blue"; } else if(avgTO>=55) { catTO="Memadai"; catCol="text-brand-orange"; }
+            $('report-to-cat').className = `text-xl font-bold ${catCol}`; $('report-to-cat').innerText = `(Kategori: ${catTO})`;
+            
+            let anTO = analyzeMapel(d.tryout);
+            if(anTO.html) $('report-to-table').innerHTML = anTO.html; else $('report-to-table').innerHTML = `<tr><td colspan="2" class="py-3 text-center text-slate-400">Belum ada data</td></tr>`;
+            $('report-to-strength').innerHTML = anTO.st.length ? anTO.st.map(m=>`<li>${m}</li>`).join('') : '<li class="text-slate-400 italic">Belum ada</li>';
+            $('report-to-weakness').innerHTML = anTO.wk.length ? anTO.wk.map(m=>`<li>${m}</li>`).join('') : '<li class="text-slate-400 italic">-</li>';
+
+            // Halaman 2: BS
+            let avgBS = 0, sumBS = 0;
+            if(d.latihan.length > 0) { d.latihan.forEach(r => sumBS += Number(r.Skor_Akhir||0)); avgBS = sumBS / d.latihan.length; }
+            $('report-bs-avg').innerText = d.latihan.length > 0 ? Math.round(avgBS)+"%" : "0%";
+            let anBS = analyzeMapel(d.latihan);
+            if(anBS.html) $('report-bs-table').innerHTML = anBS.html; else $('report-bs-table').innerHTML = `<tr><td colspan="2" class="py-3 text-center text-slate-400">Belum ada data</td></tr>`;
+            $('report-bs-strength').innerHTML = anBS.st.length ? anBS.st.map(m=>`<li>${m}</li>`).join('') : '<li class="text-slate-400 italic">Belum ada</li>';
+            $('report-bs-weakness').innerHTML = anBS.wk.length ? anBS.wk.map(m=>`<li>${m}</li>`).join('') : '<li class="text-slate-400 italic">-</li>';
+
+            // Halaman 3: Chart
+            const ctx = document.getElementById('reportChart').getContext('2d');
+            if(globalReportChart) globalReportChart.destroy();
+            let chartLabels = [], chartDataTO = [], chartDataBS = [];
+            // Simplified chart logic: sorting by date
+            const allActivity = [...d.tryout.map(x=>({d:new Date(x.Timestamp),s:x.Skor_Akhir,t:'TO'})), ...d.latihan.map(x=>({d:new Date(x.Timestamp),s:x.Skor_Akhir,t:'BS'}))].sort((a,b)=>a.d-b.d);
+            
+            allActivity.forEach((a, i) => {
+                chartLabels.push(a.d.toLocaleDateString('id-ID', {month:'short', day:'numeric'}));
+                if(a.t === 'TO') { chartDataTO.push(a.s); chartDataBS.push(null); }
+                else { chartDataTO.push(null); chartDataBS.push(a.s); } // using raw score for line
+            });
+
+            globalReportChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels.length ? chartLabels : ['Belum Ada'],
+                    datasets: [
+                        { label: 'Skor Try Out', data: chartDataTO.length ? chartDataTO : [0], borderColor: '#d81b60', spanGaps: true, tension: 0.3 },
+                        { label: 'Skor Latihan', data: chartDataBS.length ? chartDataBS : [0], borderColor: '#f57c00', spanGaps: true, tension: 0.3 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Halaman 4: CUC Notes
+            const notesContainer = $('report-cuc-notes');
+            if(d.cuc_notes && d.cuc_notes.length > 0) {
+                notesContainer.innerHTML = d.cuc_notes.map((n, i) => `<p class="mb-3"><span class="font-bold text-brand-blue">Sesi ${i+1}:</span> ${n}</p>`).join('');
+            } else {
+                notesContainer.innerHTML = `<p class="italic text-slate-400 text-center">Belum ada catatan observasi untuk siswa pada periode ini.</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
